@@ -1,8 +1,7 @@
 ## 데모 영상
 
-👉 [영상 보러가기](https://www.youtube.com/)
+👉 [영상 보러가기](https://youtu.be/KrNgg5SGiA4)
 
-- 영상 넣기
 
 ## 프로젝트 소개
 
@@ -86,7 +85,7 @@ Blocker 개발의 속도가 더디거나, 해결해야하는 문제들을 가리
 
 <br />
 
-# 개인이 담당했던 기능
+# 개인이 담당했던 기능(Navigation Bar, Social Login)
 
 ## :: 구현 목표
 - [7/4] 초기세팅 및 팀원들과 페이지 분배
@@ -101,7 +100,7 @@ Blocker 개발의 속도가 더디거나, 해결해야하는 문제들을 가리
 
 <br />
 
-## :: 구현 사항 설명 (작업한 내용을 상세하게 기록합니다.)
+## :: 구현 사항 설명
 ### 1. react-icon 라이브러리 사용하기
 React에서 react-icon라이브러리를 설치하여 다양한 아이콘을 사용할 수 있다. Font Awesome을 사용하다가 해당 라이브러리를 설치한 이유는 react-icon 웹 페이지에 Font Awesome을 포함한 다양한 아이콘들을 사용할 수 있으며 활용성이 편리했기 때문이다.
 
@@ -650,11 +649,277 @@ const Kakao = () => {
 - `{!localStorage.getItem('token')? <LogInModal /> : <LoggedModal />` 즉, 로컬스토리지에 토큰이 저장되었다는 말은 카카오 로그인 버튼을 클릭한 사용자의 인가코드를 서버에 넘겨주고 코드를 받은 서버가 카카오 서버에 토큰을 요청하여 해당 토큰을 프런트단에 넘겨주고 그 토큰을 로컬스토리지에 `token`이라는 이름으로 저장이 되는 과정을 담고 있다. 
 - `token`이라는 `key`가 있다면  true 없다면 false를 반환하지만 위의 코드에서 느낌표를 앞에 붙여 없다면  -> 로그인 초기창, 있다면 -> 로그인 완료 후 페이지가 그려진다.
 
+
 ---
 
+<br />
 
 
+### 6. Navigation Bar의 Search Bar 모달창 state 
+![navbar](https://user-images.githubusercontent.com/50426259/179391645-48f47a7b-cf50-4d5b-8517-1a769c51f35d.gif)
+내비게이션 바 안에는 총 6개의 모달창이 있다. 로그인과 로그아웃 창 2개, search bar 자체가 하나의 모달창이고 그 안에 3개의 모달창이 자식요소로 포함되어 있다. 모달 지옥에 빠지기 전, 지난 날 모달 라이브러리 대신 직접 모달창을 구현한 내게 잘했다는 칭찬을 하고싶다. 만약 라이브러리를 사용했다면 state 관리에 더 많은 시간을 소비했을 것이다. 모달 지옥 여행기록 시작.
 
+<br />
+
+![image](https://user-images.githubusercontent.com/50426259/179391634-2ca64765-32c3-464a-8fb7-da19e49a07f0.png)
+<small>내비게이션 바 구도</small>
+- 모달의 state는 boolean 값으로 true라면 보이고, false라면 보이지 않게 상태를 업데이트 한다. 모든 state를 최상단 부모인 Nav.js에 작성해야 했다.
+- 모달창 내용 또한 Nav.js에 작성해야 했다. 그리고 수많은  state를 props로 자식에게 넘겨줘야 했다. 
+- 자식은 그 자식에게 또 그 자식에게 넘겨주는 방식이었기 때문에 depth가 깊어지고 넘겨줄 props가 많아지면서 Redux 및 Recoil 사용까지 고려했다.
+- 결론적으로 모든 함수와 state를 Nav.js에서 정의하고 props로 각각의 자식에게 넘겨주었다.
+```js
+const Nav = () => {
+  const [searchModal, setSearchModal] = useState(false);
+
+  const [whereModal, setWhereModal] = useState(false);
+
+  const [whenModal, setWhenModal] = useState(false);
+
+  const [visitorsModal, setVisitorsModal] = useState(false);
+
+  const [clickedCity, setClickedCity] = useState('여행지 검색');
+
+  const [adultCount, setAdultCount] = useState(0);
+
+  const [childrenCount, setChildrenCount] = useState(0);
+
+  const [infantCount, setInfantCount] = useState(0);
+
+  const [petCount, setPetCount] = useState(0);
+
+  const closeAllModals = () => {
+    searchModal && setSearchModal(false);
+    whereModal && setWhereModal(!whereModal);
+    whenModal && setWhenModal(!whenModal);
+    visitorsModal && setVisitorsModal(!visitorsModal);
+  };
+
+  const addAdultCount = () => {
+    adultCount >= 0 && setAdultCount(adultCount + 1);
+  };
+
+  const removeAdultCount = () => {
+    adultCount && setAdultCount(adultCount - 1);
+  };
+
+  const addChildrenCount = () => {
+    childrenCount >= 0 && setChildrenCount(childrenCount + 1);
+  };
+
+  const removeChildrenCount = () => {
+    childrenCount && setChildrenCount(childrenCount - 1);
+  };
+  const addInfantCount = () => {
+    infantCount < 6 && setInfantCount(infantCount + 1);
+  };
+
+  const removeInfantCount = () => {
+    infantCount && setInfantCount(infantCount - 1);
+  };
+  const addPetCount = () => {
+    petCount < 6 && setPetCount(petCount + 1);
+  };
+
+  const removePetCount = () => {
+    petCount && setPetCount(petCount - 1);
+  };
+
+  const resetSelection = () => {
+    setAdultCount(0);
+    setChildrenCount(0);
+    setInfantCount(0);
+    setPetCount(0);
+  };
+
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const onChange = dates => {
+    const [start, end] = dates;
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  const checkInDate =
+    startDate != null &&
+    startDate
+      .toLocaleString()
+      .slice(0, -13)
+      .split(' ')
+      .join('-')
+      .replace(/\./g, '');
+
+  const checkOutDate =
+    endDate != null &&
+    endDate
+      .toLocaleString()
+      .slice(0, -13)
+      .split(' ')
+      .join('-')
+      .replace(/\./g, '');
+
+  return (
+    <div>
+      <Navigation primary={!searchModal}>
+        <Wrapper>
+          <Logo>
+            <ImageBox>
+              <Link to="/">
+                <Image src="/images/Logo.png" />
+              </Link>
+            </ImageBox>
+          </Logo>
+          <Search searchModal={searchModal} setSearchModal={setSearchModal} />
+          <LogIn closeAllModals={closeAllModals} />
+        </Wrapper>
+        {searchModal && (
+          <SearchClickedModal
+            closeAllModals={closeAllModals}
+            whereModal={whereModal}
+            setWhereModal={setWhereModal}
+            whenModal={whenModal}
+            setWhenModal={setWhenModal}
+            visitorsModal={visitorsModal}
+            setVisitorsModal={setVisitorsModal}
+            clickedCity={clickedCity}
+            adultCount={adultCount}
+            childrenCount={childrenCount}
+            infantCount={infantCount}
+            petCount={petCount}
+            checkInDate={checkInDate}
+            checkOutDate={checkOutDate}
+          />
+        )}
+      </Navigation>
+      {whereModal && (
+        <SelectRegion
+          closeWhereModal={() => setWhereModal(!whereModal)}
+          setClickedCity={setClickedCity}
+        />
+      )}
+      {whenModal && (
+        <SelectDate
+          onChange={onChange}
+          startDate={startDate}
+          endDate={endDate}
+          closeWhenModal={() => setWhenModal(!whenModal)}
+        />
+      )}
+      {visitorsModal && (
+        <SelectVisitors
+          closeVisitorsModal={() => setVisitorsModal(!visitorsModal)}
+          adultCount={adultCount}
+          setAdultCount={setAdultCount}
+          childrenCount={childrenCount}
+          setChildrenCount={setChildrenCount}
+          infantCount={infantCount}
+          setInfantCount={setInfantCount}
+          petCount={petCount}
+          setPetCount={setPetCount}
+          addAdultCount={addAdultCount}
+          removeAdultCount={removeAdultCount}
+          addChildrenCount={addChildrenCount}
+          removeChildrenCount={removeChildrenCount}
+          addInfantCount={addInfantCount}
+          removeInfantCount={removeInfantCount}
+          addPetCount={addPetCount}
+          removePetCount={removePetCount}
+          resetSelection={resetSelection}
+        />
+      )}
+    </div>
+  );
+};           
+```
+- 이렇게 넘겨준 state와 함수를 자식에서 사용하고 또 자식에게 넘겨주어 state값을 관리했다.
+
+
+<br />
+          
+---
+
+<br />
+
+
+### 7. 달력 라이브러리 react-datepicker 사용하기
+달력 라이브러리를 사용하기 위해서 다양한 라이브러리를 검색했다. 각각의 장단점을 고려한 후 react-datepicker를 선택하게 되었다. react-datepicker의 공식문서는 매우 직관적이며 다양한 옵션을 제공하고 있어 입맛에 맞게 골라서 코드를 넣으면 원하는 달력을 만들 수 있다. 다만 단점은 CSS를 사용하여 달력의 스타일을 커스터마이징 할 수 있다. styled component로 사용할 수 있지만 결국은 CSS 파일을 사용해야 가능했다. 
+<br />
+- react-datepicker는 **selectDate.js** 모달창 안에 구현된다.
+```js
+const SelectDate = ({ onChange, startDate, endDate, closeWhenModal }) => {
+  return (
+    <>
+      <ModalOutside onClick={closeWhenModal} />
+      <SelectWrapper onClick={e => e.stopPropagation()}>
+        <DatePicker
+          selected={startDate}
+          onChange={onChange}
+          startDate={startDate}
+          endDate={endDate}
+          selectsRange
+          minDate={new Date()}
+          locale={ko}
+          isClearable={true}
+          monthsShown={2}
+          showPopperArrow={false}
+          dateFormat="yyyy/MM/dd"
+        />
+      </SelectWrapper>
+    </>
+  );
+};       
+```
+- `<DatePicker/>` 아래의 속성은 모두 라이브러리에서 제공하는 옵션이다. 
+- 속성에 따라 state가 필요하다. 해당 state들은 모두 최상위 부모에 작성하고 props로 넘겨 받는 방식으로 작성했다.
+          
+<br />
+          
+📢라이브러리에 대한 다른 생각📢
+앞서 모달창 라이브러리에 대해 비효율적이다 라는 의견을 남겼지만 react-datePicker 라이브러리와 같이 복잡한 로직으로 구현해야할 기능을 아주 간단하게 커스터마이징할 수 있도록 하는 매우 효율적인 라이브러리도 있다. 무조건 라이브러리를 사용하거나 무조건 바닐라 자바스크립트를 사용하는 것이 아니라 나에게 필요한 것이 무엇인지, 해당 라이브러를 사용했을 때의 장점과 단점, 내가 직접 구현했을 때의 이점 등을 고려해야 한다. 또한 라이브러리라고 해서 무조건 설치하는 것이 아니라 제공자가 얼마나 라이브러리르 관리하고 있는지, 많은 사용자들이 이용하고 있는 라이브러리 인지 등을 확인하고 설치하는 것이 중요하다. 
+---
+
+<br />
+
+
+### 8. Search Bar 검색 내용 Main Page에 넘겨주기
+내비게이션 바에서 가장 중요한 기능은 지역, 날짜, 인원 등을 작성한 후 해당 내용을 토대로 필터링하여 검색 결과가 나와야 한다는 점이다. Main Page를 담당하는 프론트 엔드 개발자와 백엔드 개발자, 내비게이션 바를 담당하는 나 이렇게 셋이 검색 데이터를 어떻게 넘겨주고 누구에게 넘겨주어야 할지 고민했다. 
+```js
+//SearchClickedModal.js
+          
+  const sendSearchInfo = () => {
+    navigate(
+      `maplist/1/rooms?max_guest=${
+        adultCount + childrenCount + infantCount
+      }&max_pet=${petCount}&check_in=${checkInDate}&check_out=${checkOutDate}&region=${clickedCity}`
+    );
+    closeAllModals();
+  };
+```
+- 검색 버튼을 클릭했을 시 onClick 이벤트를 주어 해당 `sendSearchInfo` 함수가 실행
+- `useNavigate` Hook을 사용하여 url 주소를 변경한다.
+
+```js
+const Routers = () => {
+  return (
+    <BrowserRouter>
+      <Nav />
+      <Routes>
+        <Route path="/" element={<Main />} />
+        <Route path="/details/:id" element={<Details />} />
+        <Route path="/maplist/:pageId/rooms" element={<MapList />} />
+        <Route path="/users/kakao-signin" element={<Kakao />} />
+        <Route path="/test" element={<LoggedModal />} />
+      </Routes>
+      <Footer />
+    </BrowserRouter>
+  );
+};
+```
+- Router.js를 참고하면 검색 결과는 `<MapList />` 페이지에서 렌더링 된다는 것을 알 수 있다.
+-        
+<br />
+<br />
+<br />
+<br />
 <br />
 <br />
 <br />
@@ -822,6 +1087,4 @@ git add, commit 후 rebase를 진행하는데 conflict가 났다. 팀원이 새�
 git rebase에는 -abort가 있기 때문에 너무 겁먹지 말자!
 <br />
 
-## :: 기타 질문 및 특이 사항
-- ~~인가 코드를 백엔드에 넘겨줄 때, `let`을 사용하려는 이유는 코드가 매번 바뀌기 때문입니다. 하지만 보안을 위해서 `const`를 사용해야 하나요? user마다 코드가 다른 것이 아니라 로그인을 시도하려 할때마다 바뀌기 때문에 크게 위험하다고 생각은 들지 않지만 어떤 방법이 지향되는지 궁금합니다.~~
-- 마지마지 심슨 마지 요청마지 마지데 마지!!!! 부탁드립니다.
+
