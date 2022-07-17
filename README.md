@@ -649,7 +649,35 @@ const Kakao = () => {
 - `{!localStorage.getItem('token')? <LogInModal /> : <LoggedModal />` 즉, 로컬스토리지에 토큰이 저장되었다는 말은 카카오 로그인 버튼을 클릭한 사용자의 인가코드를 서버에 넘겨주고 코드를 받은 서버가 카카오 서버에 토큰을 요청하여 해당 토큰을 프런트단에 넘겨주고 그 토큰을 로컬스토리지에 `token`이라는 이름으로 저장이 되는 과정을 담고 있다. 
 - `token`이라는 `key`가 있다면  true 없다면 false를 반환하지만 위의 코드에서 느낌표를 앞에 붙여 없다면  -> 로그인 초기창, 있다면 -> 로그인 완료 후 페이지가 그려진다.
 
+- 서버에서 user 정보 데이터를 완성하여 로그인 후 user의 카카오톡 profile 사진을 가져올 수 있다.(그 전에 정보수집에 대한 동의를 구한다.)
+![profile](https://user-images.githubusercontent.com/50426259/179394739-a417d796-f326-4013-a5e2-f2c28a2dbeba.gif)
+```js
+{!localStorage.getItem('token') ? (
+  <ProfileIcon />
+) : (
+  <UserPicture src={localStorage.getItem('userImage')} />
+)}
+```
+- 서버에서는 access token과 함께 user의 image도 넘겨준다.
 
+```js
+//kakao.js
+
+ useEffect(() => {
+    fetch(`http://52.79.248.152:8000/users/kakao-signin?code=${code}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.access_token) {
+          localStorage.setItem('token', data.access_token);
+          localStorage.setItem('userImage', data.user_image);
+          window.open('http://localhost:3000', '_self');
+        } else {
+          alert('로그인 실패');
+        }
+      });
+  }, []);
+
+```
 ---
 
 <br />
@@ -869,12 +897,16 @@ const SelectDate = ({ onChange, startDate, endDate, closeWhenModal }) => {
 };       
 ```
 - `<DatePicker/>` 아래의 속성은 모두 라이브러리에서 제공하는 옵션이다. 
-- 속성에 따라 state가 필요하다. 해당 state들은 모두 최상위 부모에 작성하고 props로 넘겨 받는 방식으로 작성했다.
+- 속성에 따라 state가 필요하다. 해당 state들은 모두 최상위 부모에 성하고 props로 넘겨 받는 방식으로 작성했다.
           
 <br />
+
           
 📢라이브러리에 대한 다른 생각📢
+
 앞서 모달창 라이브러리에 대해 비효율적이다 라는 의견을 남겼지만 react-datePicker 라이브러리와 같이 복잡한 로직으로 구현해야할 기능을 아주 간단하게 커스터마이징할 수 있도록 하는 매우 효율적인 라이브러리도 있다. 무조건 라이브러리를 사용하거나 무조건 바닐라 자바스크립트를 사용하는 것이 아니라 나에게 필요한 것이 무엇인지, 해당 라이브러를 사용했을 때의 장점과 단점, 내가 직접 구현했을 때의 이점 등을 고려해야 한다. 또한 라이브러리라고 해서 무조건 설치하는 것이 아니라 제공자가 얼마나 라이브러리르 관리하고 있는지, 많은 사용자들이 이용하고 있는 라이브러리 인지 등을 확인하고 설치하는 것이 중요하다. 
+
+
 ---
 
 <br />
@@ -882,6 +914,7 @@ const SelectDate = ({ onChange, startDate, endDate, closeWhenModal }) => {
 
 ### 8. Search Bar 검색 내용 Main Page에 넘겨주기
 내비게이션 바에서 가장 중요한 기능은 지역, 날짜, 인원 등을 작성한 후 해당 내용을 토대로 필터링하여 검색 결과가 나와야 한다는 점이다. Main Page를 담당하는 프론트 엔드 개발자와 백엔드 개발자, 내비게이션 바를 담당하는 나 이렇게 셋이 검색 데이터를 어떻게 넘겨주고 누구에게 넘겨주어야 할지 고민했다. 
+
 ```js
 //SearchClickedModal.js
           
@@ -894,8 +927,10 @@ const SelectDate = ({ onChange, startDate, endDate, closeWhenModal }) => {
     closeAllModals();
   };
 ```
+
 - 검색 버튼을 클릭했을 시 onClick 이벤트를 주어 해당 `sendSearchInfo` 함수가 실행
 - `useNavigate` Hook을 사용하여 url 주소를 변경한다.
+
 
 ```js
 const Routers = () => {
@@ -914,16 +949,41 @@ const Routers = () => {
   );
 };
 ```
+
 - Router.js를 참고하면 검색 결과는 `<MapList />` 페이지에서 렌더링 된다는 것을 알 수 있다.
--        
+- 따라서 navigate 함수에 작성한 주소로 이동하며 해당 주소는 query string으로 변수에 담긴 값은 사용자의 선택에 따라 달라진다.     
 <br />
+검색 정보를 내비게이션 바에서 넘겨주면 MapList를 담당하는 개발자는 해당 정보를 백엔드에 보낸다.
+
+
+```js
+//MapList.js
+
+  useEffect(() => {
+    fetch(
+      `${MAP_LIST_API.rooms}?offset=${
+        (+pageId - 1) * 8
+      }&limit=8&max_guest=${maxGuest}&max_pet=${maxPet}&region=${region}`
+    )
+      .then(res => res.json())
+      .then(result => {
+        setTotalPageNum(25);
+        setRoomData(result.room_list);
+      });
+  }, [pageId]);
+```
+
+
+- 서버에서 필터링 한 결과를 다시 프론트에 넘겨주고 이를 렌더링 한다.
+
+
 <br />
+
+---
+
+
 <br />
-<br />
-<br />
-<br />
-<br />
-<br />
+
 
 ## :: 성장 포인트 (해당 기능을 구현하며 고민했던 사항이나 새로 알게된 부분, 어려웠던 점 등을 작성합니다.)
 ### 라이브러리
@@ -1085,6 +1145,26 @@ git add, commit 후 rebase를 진행하는데 conflict가 났다. 팀원이 새�
 5. git push origin 브랜치 -f
 
 git rebase에는 -abort가 있기 때문에 너무 겁먹지 말자!
+
 <br />
+
+### depth가 깊어져도 하나하나 풀어나가자
+**[성장한 모먼트]**
+여러 개의 모달창 안에 또 모달창이 있고 상태를 업데이트 하기 위해서는 최상위 부모에 state를 정의하고 props로 모든 것을 넘겨주어야 할 상황에서 수많은 시간을 허비했다. 모달창이 닫혀야 하는데 열리고, 열려도 닫히지 않고, 위치가 어긋나고, `z-index`가 맞지 않고 등등 어떤 원인으로부터 꼬이기 시작했는지 막막했다. 마치 100개의 목걸이들이 아주 복잡하게 엉켜서 가위로 다 잘라버리고 싶은 심정... 하지만 머리를 식히고 다시 돌아와 차근차근 하나씩 state를 정의하고 props로 넘겨주고, 넘겨받아 사용하였다. 콘솔창에 에러가 조금씩 사라져갔고 드디어 내가 원하는 모달창의 기능이 구현되기 시작했다.
+
+모든 state를 전역 변수로 사용하여 Redux를 통해 state를 관리하고자 했지만 Dan Abramov이 말했 듯, 꼭 필요한 상황이 아니면 Redux를 사용하지 않아도 된다. 최대한 내가 state를 자유롭게 통제할 수 있도록 구현하고 싶었다.
+
+이번 프로젝트를 통해서 나무보다는 숲을 보는 연습을 할 수 있었다. 나무만 보고 있으니 내가 숲에 있는지, 초원에 있는지, 공원에 있는지 모르고 결국 길을 잃게 되었다. 하지만 처음부터 숲을 보았더라면 앞으로 내가 나아갈 방향과 목적지를 보고 효율적으로 프로젝트를 진행할 수 있지 않았을까 아쉬움이 있다.
+
+<br />
+
+### git
+git은 복잡하다. 하지만 필수다. 
+- git rebase는 commit을 하나로 만들어 좀 더 효율적이 branch 관리를 도와준다.
+- git fetch -p로 remote에서 pull 받은 main branch를 작업중인 branch에 가져올 수 있다.
+- git remote update는 remote main에 올린 branch를 내 branch에서 열 수 있게 한다.
+다양한 git 명령어를 항상 숙지하고 프로젝트가 꼬이지 않도록 주의하자.
+
+
 
 
